@@ -1,0 +1,202 @@
+{% extends "app/base.html" %}
+
+{% load static %}
+
+{% block content %}
+<section class="admin-page">
+
+    <!-- Hero -->
+    <div class="admin-hero">
+        <h1><i class="fas fa-clipboard-list"></i> Administrativo</h1>
+        <p>Gestión de gastos y boletas por evento.</p>
+    </div>
+
+    {% if eventos %}
+    <div class="admin-container">
+        {% for evento in eventos %}
+        <div class="admin-evento-section">
+            <!-- Encabezado del evento -->
+            <div class="admin-evento-header">
+                <div class="admin-evento-info">
+                    <h2><i class="fas fa-trophy"></i> {{ evento.nombre }}</h2>
+                    <div class="admin-evento-meta">
+                        <span><i class="fas fa-calendar-day"></i> {{ evento.fecha|date:"d/m/Y" }}</span>
+                        <span><i class="fas fa-map-marker-alt"></i> {{ evento.lugar }}</span>
+                        <span class="evento-estado estado-{{ evento.estado|lower|cut:' ' }}">{{ evento.estado }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de gastos -->
+            {% if evento.gastos_set.all %}
+            <div class="admin-tabla-wrapper">
+                <table class="admin-tabla">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Descripción</th>
+                            <th>Monto</th>
+                            <th>Fecha</th>
+                            <th>Boletas</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for gasto in evento.gastos_set.all %}
+                        <tr>
+                            <td class="td-num">{{ forloop.counter }}</td>
+                            <td class="td-desc">{{ gasto.descripcion }}</td>
+                            <td class="td-monto">${{ gasto.monto }}</td>
+                            <td class="td-fecha">{{ gasto.fecha|date:"d/m/Y" }}</td>
+                            <td class="td-boletas">
+                                <span class="badge-boletas">
+                                    <i class="fas fa-paperclip"></i> {{ gasto.boletas.count }}
+                                </span>
+                            </td>
+                            <td class="td-acciones">
+                                <button class="btn-detalles" onclick="abrirModal('modal-{{ evento.id }}-{{ gasto.id }}')">
+                                    <i class="fas fa-eye"></i> Ver Detalles
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Modal para este gasto -->
+                        <div class="modal-overlay" id="modal-{{ evento.id }}-{{ gasto.id }}">
+                            <div class="modal-content">
+                                <button class="modal-close" onclick="cerrarModal('modal-{{ evento.id }}-{{ gasto.id }}')">&times;</button>
+                                
+                                <div class="modal-header">
+                                    <h3><i class="fas fa-file-invoice-dollar"></i> Detalle del Gasto</h3>
+                                </div>
+
+                                <div class="modal-body">
+                                    <!-- Info del gasto -->
+                                    <div class="modal-info-grid">
+                                        <div class="modal-info-item">
+                                            <span class="info-label">Evento</span>
+                                            <span class="info-value">{{ evento.nombre }}</span>
+                                        </div>
+                                        <div class="modal-info-item">
+                                            <span class="info-label">Descripción</span>
+                                            <span class="info-value">{{ gasto.descripcion }}</span>
+                                        </div>
+                                        <div class="modal-info-item">
+                                            <span class="info-label">Monto</span>
+                                            <span class="info-value monto-highlight">${{ gasto.monto }}</span>
+                                        </div>
+                                        <div class="modal-info-item">
+                                            <span class="info-label">Fecha</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Boletas adjuntas -->
+                                    <div class="modal-boletas-section">
+                                        <h4><i class="fas fa-images"></i> Boletas Adjuntas ({{ gasto.boletas.count }})</h4>
+                                        
+                                        {% if gasto.boletas.all %}
+                                        <div class="modal-boletas-grid">
+                                            {% for boleta in gasto.boletas.all %}
+                                            <div class="boleta-item">
+                                                {% if boleta.es_imagen %}
+                                                <div class="boleta-preview">
+                                                    <img src="{{ boleta.archivo.url }}" alt="{{ boleta.descripcion|default:'Boleta' }}" onclick="ampliarImagen(this.src)">
+                                                </div>
+                                                {% else %}
+                                                <div class="boleta-preview boleta-file">
+                                                    <i class="fas fa-file-pdf"></i>
+                                                    <a href="{{ boleta.archivo.url }}" target="_blank">Abrir archivo</a>
+                                                </div>
+                                                {% endif %}
+                                                <div class="boleta-info">
+                                                    <span class="boleta-desc">{{ boleta.descripcion|default:"Sin descripción" }}</span>
+                                                    <span class="boleta-fecha">{{ boleta.fecha_subida|date:"d/m/Y H:i" }}</span>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        {% else %}
+                                        <div class="sin-boletas">
+                                            <i class="fas fa-folder-open"></i>
+                                            <p>No hay boletas adjuntas para este gasto.</p>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2" class="total-label">Total</td>
+                            <td class="total-monto">
+                            </td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            {% else %}
+            <div class="admin-sin-gastos">
+                <i class="fas fa-receipt"></i>
+                <p>No hay gastos registrados para este evento.</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="eventos-empty">
+        <i class="fas fa-volleyball-ball"></i>
+        <h2>No hay eventos registrados</h2>
+        <p>Aún no se han creado eventos con gastos asociados.</p>
+    </div>
+    {% endif %}
+</section>
+
+<!-- Modal de imagen ampliada -->
+<div class="img-overlay" id="imgOverlay" onclick="cerrarImagen()">
+    <img id="imgAmpliada" src="" alt="Boleta ampliada">
+</div>
+
+<script>
+    function abrirModal(id) {
+        document.getElementById(id).classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function cerrarModal(id) {
+        document.getElementById(id).classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    function ampliarImagen(src) {
+        const overlay = document.getElementById('imgOverlay');
+        document.getElementById('imgAmpliada').src = src;
+        overlay.classList.add('active');
+    }
+
+    function cerrarImagen() {
+        document.getElementById('imgOverlay').classList.remove('active');
+    }
+
+    // Cerrar modal con Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+            document.getElementById('imgOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
+
+    // Cerrar modal al hacer click fuera
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+    });
+</script>
+{% endblock %}

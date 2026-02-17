@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Club MasterVolley</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'app/css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header class="navbar">
+        <div class="navbar-container">
+            <a href="{% url 'home' %}" class="navbar-logo">
+                <i class="fas fa-volleyball-ball"></i>
+                <span>MasterVolley</span>
+            </a>
+
+            <button class="navbar-toggle" id="navbarToggle" aria-label="Abrir menú">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
+
+            <nav class="navbar-menu" id="navbarMenu">
+                <ul class="navbar-links">
+                    <li><a href="{% url 'home' %}"><i class="fas fa-home"></i> Inicio</a></li>
+                    <li><a href="{% url 'evento' %}"><i class="fas fa-calendar-alt"></i> Eventos</a></li>
+                    <li><a href="{% url 'administrativo' %}"><i class="fas fa-clipboard-list"></i> Administrativo</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <main id="content">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-section footer-about">
+                <h3><i class="fas fa-volleyball-ball"></i> MasterVolley</h3>
+                <p>Club dedicado a la formación y competición de voleibol. Promovemos el deporte, la disciplina y el trabajo en equipo.</p>
+            </div>
+
+            <div class="footer-section footer-links">
+                <h3>Enlaces</h3>
+                <ul>
+                    <li><a href="{% url 'home' %}">Inicio</a></li>
+                    <li><a href="{% url 'evento' %}">Eventos</a></li>
+                    <li><a href="{% url 'administrativo' %}">Administrativo</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section footer-contact">
+                <h3>Contacto</h3>
+                <ul>
+                    <li><i class="fas fa-envelope"></i> info@mastervolley.com</li>
+                    <li><i class="fas fa-phone"></i> +1 234 567 890</li>
+                    <li><i class="fas fa-map-marker-alt"></i> Ciudad Deportiva, Local 12</li>
+                </ul>
+            </div>
+
+            <div class="footer-section footer-social">
+                <h3>Síguenos</h3>
+                <div class="social-icons">
+                    <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                    <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                    <a href="#" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2026 Club MasterVolley. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script>
+        const toggle = document.getElementById('navbarToggle');
+        const menu = document.getElementById('navbarMenu');
+        toggle.addEventListener('click', () => {
+            menu.classList.toggle('active');
+            toggle.classList.toggle('active');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+{% extends "app/base.html" %}
+
+{% load static %}
+
+{% block content %}
+<section class="eventos-page">
+
+    <!-- Hero / Título -->
+    <div class="eventos-hero">
+        <h1><i class="fas fa-calendar-alt"></i> Eventos</h1>
+        <p>Consulta todos los torneos y competiciones programadas del club.</p>
+    </div>
+
+    <!-- Estadísticas rápidas -->
+    <div class="eventos-stats">
+        <div class="stat-card">
+            <i class="fas fa-list"></i>
+            <div>
+                <span class="stat-number">{{ eventos|length }}</span>
+                <span class="stat-label">Total Eventos</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-check-circle"></i>
+            <div>
+                <span class="stat-number">
+                    {% with finalizados=0 %}
+                        {% for e in eventos %}{% if e.estado == 'Finalizado' %}{{ forloop.counter }}{% endif %}{% endfor %}
+                    {% endwith %}
+                </span>
+                <span class="stat-label">Finalizados</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-spinner"></i>
+            <div>
+                <span class="stat-number">
+                    {% for e in eventos %}{% if e.estado == 'En curso' %}{{ forloop.counter }}{% endif %}{% endfor %}
+                </span>
+                <span class="stat-label">En Curso</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de eventos -->
+    {% if eventos %}
+    <div class="eventos-grid">
+        {% for evento in eventos %}
+        <div class="evento-card">
+            <div class="evento-card-header">
+                <span class="evento-estado estado-{{ evento.estado|lower|cut:' ' }}">{{ evento.estado }}</span>
+            </div>
+            <div class="evento-card-body">
+                <h2 class="evento-nombre">{{ evento.nombre }}</h2>
+                <ul class="evento-detalles">
+                    <li>
+                        <i class="fas fa-calendar-day"></i>
+                        <span>{{ evento.fecha|date:"d \d\e F, Y" }}</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>{{ evento.lugar }}</span>
+                    </li>
+                    <li>
+                        <i class="fas fa-users"></i>
+                        <span>{{ evento.equipos_participantes }} equipos</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="evento-card-footer">
+                <a href="#" class="btn-ver-evento"><i class="fas fa-eye"></i> Ver Detalles</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="eventos-empty">
+        <i class="fas fa-volleyball-ball"></i>
+        <h2>No hay eventos registrados</h2>
+        <p>Aún no se han creado eventos. ¡Vuelve pronto!</p>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
