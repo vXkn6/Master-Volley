@@ -7,7 +7,7 @@ class Evento(models.Model):
     fecha = models.DateField()
     lugar = models.CharField(max_length=100)
     equipos_participantes = models.IntegerField()
-    estado = models.CharField(max_length=50)
+    estado = models.ForeignKey('Estado', on_delete=models.CASCADE)  # Relación con el modelo Estado
     def __str__(self):
         return self.nombre
     
@@ -21,7 +21,6 @@ class Equipo(models.Model):
 class Jugador(models.Model):
     nombre = models.CharField(max_length=100)
     apellido = models.CharField(max_length=100)
-    equipo = models.ForeignKey(Equipo, on_delete=models.CASCADE)
     posicion = models.CharField(max_length=50)
     numero = models.IntegerField()
     def __str__(self):
@@ -57,3 +56,10 @@ class BoletaGasto(models.Model):
     def es_imagen(self):
         extensiones_imagen = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
         return any(self.archivo.name.lower().endswith(ext) for ext in extensiones_imagen)
+
+class Estado (models.Model):
+    nombre = models.CharField(max_length=50)
+    descripcion = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.nombre

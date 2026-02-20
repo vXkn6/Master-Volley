@@ -29,6 +29,19 @@
                     <li><a href="{% url 'home' %}"><i class="fas fa-home"></i> Inicio</a></li>
                     <li><a href="{% url 'evento' %}"><i class="fas fa-calendar-alt"></i> Eventos</a></li>
                     <li><a href="{% url 'administrativo' %}"><i class="fas fa-clipboard-list"></i> Administrativo</a></li>
+                    {% if user.is_authenticated %}
+                        <li>
+                            <form method="post" action="{% url 'logout' %}" class="logout-form">
+                                {% csrf_token %}
+                                <button type="submit" class="logout-btn">
+                                    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                                </button>
+                            </form>
+                        </li>
+                    {% else %}
+                        <li><a href="{% url 'login' %}"><i class="fas fa-sign-in-alt"></i> Iniciar Sesión</a></li>
+                        <li><a href="{% url 'registro' %}"><i class="fas fa-user-plus"></i> Registro</a></li>
+                    {% endif %}
                 </ul>
             </nav>
         </div>
@@ -90,5 +103,8 @@
             toggle.classList.toggle('active');
         });
     </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 </body>
 </html>
