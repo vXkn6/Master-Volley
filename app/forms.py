@@ -2,7 +2,7 @@ from django import forms
 from .models import BoletaGasto
 from .models import Gastos
 from .models import Evento
-from . models import Partido
+from .models import Partido
 
 class BoletaGastoForm(forms.ModelForm):
     class Meta:
@@ -25,5 +25,10 @@ class PartidoForm(forms.ModelForm):
 class EventoForm(forms.ModelForm):
     class Meta:
         model = Evento
-        fields = ['nombre', 'fecha', 'lugar', 'equipos_participantes', 'estado']
+        fields = ['nombre', 'fecha', 'lugar', 'tipo', 'equipos_participantes', 'estado', 'descripcion']
+        widgets = {
+            'fecha': forms.DateInput(attrs={'type': 'date'}),
+            'descripcion': forms.Textarea(attrs={'rows': 3}),
+            'tipo': forms.Select(attrs={'id': 'id_tipo', 'onchange': 'toggleEquipos()'}),
+        }
         

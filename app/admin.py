@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Estado, Evento, Equipo, Jugador, Partido, Gastos, BoletaGasto
+from .models import Estado, Evento, Equipo, Jugador, Partido, Gastos, BoletaGasto, BracketMatch
 
 
 class BoletaGastoInline(admin.TabularInline):
@@ -19,3 +19,4 @@ admin.site.register(Jugador)
 admin.site.register(Partido)
 admin.site.register(BoletaGasto)
 admin.site.register(Estado)
+admin.site.register(BracketMatch)

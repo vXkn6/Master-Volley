@@ -3,12 +3,153 @@
 {% load static %}
 
 {% block content %}
-    <h1>Home</h1>
-    
-    <div class="home-content">
-        <p>Bienvenido al sitio web del Club MasterVolley. Aquí encontrarás toda la información sobre nuestros eventos, actividades y noticias relacionadas con el voleibol.</p>
-        <p>Navega por nuestro sitio para conocer más sobre nuestros próximos eventos, cómo unirte al club y las últimas novedades en el mundo del voleibol.</p>
-    </div>
+<div class="home-page">
 
+    <!-- ===== HERO ===== -->
+    <section class="home-hero">
+        <div class="home-hero-bg"></div>
+        <div class="home-hero-content">
+            <div class="home-hero-badge">
+                <i class="fas fa-volleyball-ball"></i> Club Deportivo
+            </div>
+            <h1 class="home-hero-title">
+                Bienvenido a <span class="home-hero-highlight">MasterVolley</span>
+            </h1>
+            <p class="home-hero-subtitle">
+                Pasión, disciplina y trabajo en equipo. Únete al club de voleibol que impulsa a los mejores jugadores de la región.
+            </p>
+            <div class="home-hero-actions">
+                <a href="{% url 'evento' %}" class="btn-hero-primary">
+                    <i class="fas fa-calendar-alt"></i> Ver Eventos
+                </a>
+                <a href="{% url 'registro' %}" class="btn-hero-secondary">
+                    <i class="fas fa-user-plus"></i> Unirse al Club
+                </a>
+            </div>
+        </div>
+        <div class="home-hero-visual">
+            <div class="hero-ball-wrapper">
+                <i class="fas fa-volleyball-ball hero-ball-icon"></i>
+                <div class="hero-ball-ring ring-1"></div>
+                <div class="hero-ball-ring ring-2"></div>
+                <div class="hero-ball-ring ring-3"></div>
+            </div>
+        </div>
+    </section>
 
+    <!-- ===== STATS ===== -->
+    <section class="home-stats">
+        <div class="home-stats-inner">
+            <div class="home-stat-item">
+                <span class="home-stat-num">12+</span>
+                <span class="home-stat-label">Años de historia</span>
+            </div>
+            <div class="home-stat-divider"></div>
+            <div class="home-stat-item">
+                <span class="home-stat-num">80+</span>
+                <span class="home-stat-label">Jugadores activos</span>
+            </div>
+            <div class="home-stat-divider"></div>
+            <div class="home-stat-item">
+                <span class="home-stat-num">30+</span>
+                <span class="home-stat-label">Torneos disputados</span>
+            </div>
+            <div class="home-stat-divider"></div>
+            <div class="home-stat-item">
+                <span class="home-stat-num">15+</span>
+                <span class="home-stat-label">Títulos regionales</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== FEATURES ===== -->
+    <section class="home-features">
+        <div class="home-section-header">
+            <span class="home-section-tag">¿Qué ofrecemos?</span>
+            <h2>Todo lo que necesitas<br>en un solo club</h2>
+        </div>
+        <div class="home-features-grid">
+            <div class="home-feature-card">
+                <div class="feature-icon-wrap" style="background:#fff3e0;">
+                    <i class="fas fa-trophy" style="color:#f5a623;"></i>
+                </div>
+                <h3>Torneos y Eventos</h3>
+                <p>Organizamos torneos locales, eventos a beneficio y competencias regionales durante todo el año.</p>
+            </div>
+            <div class="home-feature-card">
+                <div class="feature-icon-wrap" style="background:#e3f2fd;">
+                    <i class="fas fa-users" style="color:#1565c0;"></i>
+                </div>
+                <h3>Equipos competitivos</h3>
+                <p>Contamos con categorías para todos los niveles: infantil, juvenil, adulto y máster.</p>
+            </div>
+            <div class="home-feature-card">
+                <div class="feature-icon-wrap" style="background:#e8f5e9;">
+                    <i class="fas fa-dumbbell" style="color:#2e7d32;"></i>
+                </div>
+                <h3>Entrenamiento profesional</h3>
+                <p>Cuerpo técnico certificado con programas de entrenamiento físico y táctico especializados.</p>
+            </div>
+            <div class="home-feature-card">
+                <div class="feature-icon-wrap" style="background:#fce4ec;">
+                    <i class="fas fa-heart" style="color:#c62828;"></i>
+                </div>
+                <h3>Comunidad activa</h3>
+                <p>Somos más que un club: una familia que comparte valores, esfuerzo y amor por el voleibol.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== PRÓXIMOS EVENTOS CTA ===== -->
+    <section class="home-cta">
+        <div class="home-cta-inner">
+            <div class="home-cta-text">
+                <h2><i class="fas fa-calendar-check"></i> ¿Listo para el próximo torneo?</h2>
+                <p>Revisa la agenda de eventos, inscríbete y forma parte de la acción.</p>
+            </div>
+            <a href="{% url 'evento' %}" class="btn-cta-go">
+                Ver agenda <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </section>
+
+    <!-- ===== VALORES ===== -->
+    <section class="home-values">
+        <div class="home-section-header">
+            <span class="home-section-tag">Nuestra esencia</span>
+            <h2>Los valores que nos mueven</h2>
+        </div>
+        <div class="home-values-list">
+            <div class="home-value-item">
+                <span class="value-num">01</span>
+                <div>
+                    <h4>Disciplina</h4>
+                    <p>El trabajo constante y la dedicación son la base de cada logro dentro y fuera de la cancha.</p>
+                </div>
+            </div>
+            <div class="home-value-item">
+                <span class="value-num">02</span>
+                <div>
+                    <h4>Trabajo en equipo</h4>
+                    <p>El voleibol es un deporte colectivo. La comunicación y el respeto mutuo nos hacen más fuertes.</p>
+                </div>
+            </div>
+            <div class="home-value-item">
+                <span class="value-num">03</span>
+                <div>
+                    <h4>Superación</h4>
+                    <p>Cada entrenamiento es una oportunidad para mejorar, aprender y superar los propios límites.</p>
+                </div>
+            </div>
+            <div class="home-value-item">
+                <span class="value-num">04</span>
+                <div>
+                    <h4>Inclusión</h4>
+                    <p>Abrimos las puertas a todos sin importar nivel, edad o experiencia previa. Aquí todos tienen lugar.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
 {% endblock %}

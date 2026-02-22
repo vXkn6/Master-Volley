@@ -3,13 +3,23 @@ from django.db import models
 # Create your models here.
 
 class Evento(models.Model):
+    TIPO_CHOICES = [
+        ('evento', 'Solo Evento'),
+        ('torneo', 'Evento + Torneo'),
+    ]
     nombre = models.CharField(max_length=100)
     fecha = models.DateField()
     lugar = models.CharField(max_length=100)
-    equipos_participantes = models.IntegerField()
-    estado = models.ForeignKey('Estado', on_delete=models.CASCADE)  # Relación con el modelo Estado
+    equipos_participantes = models.IntegerField(default=0, blank=True)
+    estado = models.ForeignKey('Estado', on_delete=models.CASCADE)
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='evento')
+    descripcion = models.TextField(blank=True, default='')
     def __str__(self):
         return self.nombre
+    
+    @property
+    def es_torneo(self):
+        return self.tipo == 'torneo'
     
 class Equipo(models.Model):
     nombre = models.CharField(max_length=100)
@@ -63,3 +73,20 @@ class Estado (models.Model):
 
     def __str__(self):
         return self.nombre
+
+
+class BracketMatch(models.Model):
+    """Representa un partido dentro del bracket/cuadro de un torneo."""
+    evento = models.ForeignKey(Evento, on_delete=models.CASCADE, related_name='bracket_matches')
+    ronda = models.IntegerField()  # 1 = primera ronda, 2 = segunda, etc.
+    posicion = models.IntegerField()  # posición dentro de la ronda (0, 1, 2, ...)
+    equipo1_nombre = models.CharField(max_length=100, blank=True, default='')
+    equipo2_nombre = models.CharField(max_length=100, blank=True, default='')
+    ganador_nombre = models.CharField(max_length=100, blank=True, default='')
+
+    class Meta:
+        ordering = ['ronda', 'posicion']
+        unique_together = ['evento', 'ronda', 'posicion']
+
+    def __str__(self):
+        return f"Ronda {self.ronda} - Pos {self.posicion}: {self.equipo1_nombre} vs {self.equipo2_nombre}"
