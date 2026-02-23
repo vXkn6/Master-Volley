@@ -221,8 +221,12 @@
 <div class="modal-overlay" id="modal-bracket">
     <div class="modal-content modal-bracket-content">
         <button class="modal-close" onclick="cerrarModal('modal-bracket')">&times;</button>
-        <div class="modal-header">
-            <h3><i class="fas fa-sitemap"></i> <span id="bracket-titulo">Bracket del Torneo</span></h3>
+        <div class="bracket-header-bar">
+            <div class="bracket-header-title">
+                <i class="fas fa-trophy"></i>
+                <span id="bracket-titulo">Bracket del Torneo</span>
+            </div>
+            <span class="bracket-header-sub">🏐 Torneo de Voleibol</span>
         </div>
         <div class="modal-body">
             <div class="bracket-container" id="bracket-container">
@@ -391,6 +395,64 @@
         return 'Ronda ' + ronda;
     }
 
+    function renderMatchHTML(match, rondaNum, totalRondas) {
+        const isRound1 = rondaNum === 1;
+        const hasWinner = !!match.ganador;
+        const bothSet   = !!(match.equipo1 && match.equipo2);
+        const win1 = hasWinner && match.ganador === match.equipo1;
+        const win2 = hasWinner && match.ganador === match.equipo2;
+        const isFinal = (rondaNum === totalRondas) && hasWinner;
+
+        // Team row: only editable in round 1 and when no winner yet
+        const canEdit = isRound1 && !hasWinner;
+        const onclickEq1 = canEdit ? `onclick="editarEquipo(${match.id}, 'equipo1', this)"` : '';
+        const onclickEq2 = canEdit ? `onclick="editarEquipo(${match.id}, 'equipo2', this)"` : '';
+        const editableClass = canEdit ? 'bk-team-editable' : '';
+
+        let html = `<div class="bk-match${hasWinner ? ' bk-match-done' : ''}" data-match-id="${match.id}">`;
+
+        // Team 1
+        html += `<div class="bk-team ${win1 ? 'winner' : ''} ${editableClass}" ${onclickEq1}>`;
+        html += `  <span class="bk-seed">${match.posicion * 2 + 1}</span>`;
+        html += `  <span class="bk-name">${match.equipo1 || '<em>Por definir</em>'}</span>`;
+        if (win1)  html += `<span class="bk-win-icon"><i class="fas fa-crown"></i></span>`;
+        if (canEdit && match.equipo1) html += `<span class="bk-edit-hint"><i class="fas fa-pencil-alt"></i></span>`;
+        html += `</div>`;
+
+        // Divider
+        html += `<div class="bk-divider"></div>`;
+
+        // Team 2
+        html += `<div class="bk-team ${win2 ? 'winner' : ''} ${editableClass}" ${onclickEq2}>`;
+        html += `  <span class="bk-seed">${match.posicion * 2 + 2}</span>`;
+        html += `  <span class="bk-name">${match.equipo2 || '<em>Por definir</em>'}</span>`;
+        if (win2)  html += `<span class="bk-win-icon"><i class="fas fa-crown"></i></span>`;
+        if (canEdit && match.equipo2) html += `<span class="bk-edit-hint"><i class="fas fa-pencil-alt"></i></span>`;
+        html += `</div>`;
+
+        // Winner selection — visible when both teams set and no winner yet
+        if (bothSet && !hasWinner) {
+            html += `<div class="bk-winner-section">`;
+            html += `<span class="bk-winner-label"><i class="fas fa-flag-checkered"></i> ¿Quién avanza?</span>`;
+            html += `<div class="bk-winner-btns">`;
+            html += `<button class="bk-btn-advance" onclick="seleccionarGanador(${match.id}, '${escapeStr(match.equipo1)}')">`;            html += `<i class="fas fa-arrow-up"></i> ${match.equipo1}</button>`;
+            html += `<button class="bk-btn-advance" onclick="seleccionarGanador(${match.id}, '${escapeStr(match.equipo2)}')">`;            html += `<i class="fas fa-arrow-down"></i> ${match.equipo2}</button>`;
+            html += `</div></div>`;
+        }
+
+        // Winner confirmed state
+        if (hasWinner) {
+            html += `<div class="bk-confirmed"><i class="fas fa-check-circle"></i> Ganador: <strong>${match.ganador}</strong></div>`;
+        }
+
+        html += `</div>`;
+
+        if (isFinal) {
+            html += `<div class="bk-campeon"><i class="fas fa-trophy"></i> ¡Campeón: ${match.ganador}!</div>`;
+        }
+        return html;
+    }
+
     function renderBracket(data) {
         const container = document.getElementById('bracket-container');
         const rondas = data.rondas;
@@ -402,49 +464,75 @@
             return;
         }
 
-        let html = '<div class="bracket-wrapper">';
+        // For 1 round only, just show center
+        if (totalRondas === 1) {
+            let html = '<div class="bk-bracket">';
+            html += '<div class="bk-center">';
+            html += `<div class="bk-round-label">Final</div>`;
+            rondas[rondasKeys[0]].forEach(m => { html += renderMatchHTML(m, 1, 1); });
+            html += '</div></div>';
+            container.innerHTML = html;
+            return;
+        }
 
-        rondasKeys.forEach(rondaNum => {
-            const matches = rondas[rondaNum];
-            const rondaNombre = getRondaNombre(rondaNum, totalRondas);
-            html += `<div class="bracket-round">`;
-            html += `<div class="bracket-round-title">${rondaNombre}</div>`;
+        // Split rounds: left side gets first half, right side gets second half (mirrored), center is final
+        const finalKey = rondasKeys[totalRondas - 1];
+        const nonFinalKeys = rondasKeys.slice(0, -1);
 
-            matches.forEach(match => {
-                const eq1Class = match.ganador && match.ganador === match.equipo1 ? 'winner' : '';
-                const eq2Class = match.ganador && match.ganador === match.equipo2 ? 'winner' : '';
-                const isFinal = (rondaNum === totalRondas) && match.ganador;
+        // For symmetric bracket: we need equal rounds on each side
+        // Left side: round 1 -> round n-1, right side: same but mirrored
+        // However our data is linear. For a true symmetric bracket, we split
+        // the first round's matches in half: top half goes left, bottom half goes right.
+        // Each subsequent round's matches are also split.
 
-                html += `<div class="bracket-match" data-match-id="${match.id}">`;
-                html += `  <div class="bracket-team ${eq1Class}" onclick="editarEquipo(${match.id}, 'equipo1', this)">`;
-                html += `    <span class="team-name">${match.equipo1 || '<em>Por definir</em>'}</span>`;
-                html += `  </div>`;
-                html += `  <div class="bracket-vs">VS</div>`;
-                html += `  <div class="bracket-team ${eq2Class}" onclick="editarEquipo(${match.id}, 'equipo2', this)">`;
-                html += `    <span class="team-name">${match.equipo2 || '<em>Por definir</em>'}</span>`;
-                html += `  </div>`;
+        // Build left and right halves
+        let leftRounds = {};
+        let rightRounds = {};
 
-                // Botones para seleccionar ganador
-                if (match.equipo1 && match.equipo2) {
-                    html += `<div class="bracket-actions">`;
-                    if (!match.ganador) {
-                        html += `<button class="btn-avanzar" onclick="seleccionarGanador(${match.id}, '${escapeStr(match.equipo1)}')"><i class="fas fa-arrow-up"></i> ${match.equipo1}</button>`;
-                        html += `<button class="btn-avanzar" onclick="seleccionarGanador(${match.id}, '${escapeStr(match.equipo2)}')"><i class="fas fa-arrow-up"></i> ${match.equipo2}</button>`;
-                    } else {
-                        html += `<span class="bracket-ganador"><i class="fas fa-crown"></i> ${match.ganador}</span>`;
-                    }
-                    html += `</div>`;
-                }
-
-                if (isFinal) {
-                    html += `<div class="bracket-campeon"><i class="fas fa-trophy"></i> ¡Campeón: ${match.ganador}!</div>`;
-                }
-
-                html += `</div>`;
-            });
-
-            html += `</div>`;
+        nonFinalKeys.forEach(rKey => {
+            const matches = rondas[rKey];
+            const half = Math.ceil(matches.length / 2);
+            leftRounds[rKey] = matches.slice(0, half);
+            rightRounds[rKey] = matches.slice(half);
         });
+
+        let html = '<div class="bk-bracket">';
+
+        // === LEFT HALF ===
+        html += '<div class="bk-half bk-left">';
+        nonFinalKeys.forEach(rKey => {
+            const rondaNombre = getRondaNombre(Number(rKey), totalRondas);
+            const matchCount = leftRounds[rKey].length;
+            html += `<div class="bk-round" data-matches="${matchCount}">`;
+            html += `<div class="bk-round-label">${rondaNombre}</div>`;
+            html += `<div class="bk-matches-wrapper">`;
+            leftRounds[rKey].forEach(m => { html += renderMatchHTML(m, Number(rKey), totalRondas); });
+            html += `</div>`;
+            html += '</div>';
+        });
+        html += '</div>';
+
+        // === CENTER (Final) ===
+        html += '<div class="bk-center">';
+        html += `<div class="bk-round-label">Final</div>`;
+        rondas[finalKey].forEach(m => { html += renderMatchHTML(m, Number(finalKey), totalRondas); });
+        html += '</div>';
+
+        // === RIGHT HALF (reversed order) ===
+        html += '<div class="bk-half bk-right">';
+        // Reversed: show inner rounds first (closer to final), then outer
+        const reversedKeys = [...nonFinalKeys].reverse();
+        reversedKeys.forEach(rKey => {
+            const rondaNombre = getRondaNombre(Number(rKey), totalRondas);
+            const matchCount = rightRounds[rKey].length;
+            html += `<div class="bk-round" data-matches="${matchCount}">`;
+            html += `<div class="bk-round-label">${rondaNombre}</div>`;
+            html += `<div class="bk-matches-wrapper">`;
+            rightRounds[rKey].forEach(m => { html += renderMatchHTML(m, Number(rKey), totalRondas); });
+            html += `</div>`;
+            html += '</div>';
+        });
+        html += '</div>';
 
         html += '</div>';
         container.innerHTML = html;
@@ -461,7 +549,7 @@
     function editarEquipo(matchId, campo, el) {
         pickerMatchId = matchId;
         pickerCampo = campo;
-        const currentName = el.querySelector('.team-name').textContent.trim();
+        const currentName = el.querySelector('.bk-name').textContent.trim();
         abrirTeamPicker(currentName);
     }
 
