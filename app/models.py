@@ -4,8 +4,8 @@ from django.db import models
 
 class Evento(models.Model):
     TIPO_CHOICES = [
-        ('evento', 'Solo Evento'),
-        ('torneo', 'Evento + Torneo'),
+        ('evento', 'Evento'),
+        ('torneo', 'Torneo'),
     ]
     nombre = models.CharField(max_length=100)
     fecha = models.DateField()

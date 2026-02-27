@@ -396,62 +396,74 @@
     }
 
     function renderMatchHTML(match, rondaNum, totalRondas) {
-        const isRound1 = rondaNum === 1;
-        const hasWinner = !!match.ganador;
-        const bothSet   = !!(match.equipo1 && match.equipo2);
-        const win1 = hasWinner && match.ganador === match.equipo1;
-        const win2 = hasWinner && match.ganador === match.equipo2;
-        const isFinal = (rondaNum === totalRondas) && hasWinner;
+    const isRound1 = rondaNum === 1;
+    const hasWinner = !!match.ganador;
+    const bothSet   = !!(match.equipo1 && match.equipo2);
+    const win1 = hasWinner && match.ganador === match.equipo1;
+    const win2 = hasWinner && match.ganador === match.equipo2;
+    const isFinal = (rondaNum === totalRondas) && hasWinner;
 
-        // Team row: only editable in round 1 and when no winner yet
-        const canEdit = isRound1 && !hasWinner;
-        const onclickEq1 = canEdit ? `onclick="editarEquipo(${match.id}, 'equipo1', this)"` : '';
-        const onclickEq2 = canEdit ? `onclick="editarEquipo(${match.id}, 'equipo2', this)"` : '';
-        const editableClass = canEdit ? 'bk-team-editable' : '';
+    // Lógicas de estado
+    const canEdit = isRound1 && !hasWinner;
+    const canAdvance = bothSet && !hasWinner; // Listo para elegir ganador
 
-        let html = `<div class="bk-match${hasWinner ? ' bk-match-done' : ''}" data-match-id="${match.id}">`;
+    const onclickEq1 = canEdit ? `onclick="editarEquipo(${match.id}, 'equipo1', this)"` : '';
+    const onclickEq2 = canEdit ? `onclick="editarEquipo(${match.id}, 'equipo2', this)"` : '';
+    const editableClass = canEdit ? 'bk-team-editable' : '';
 
-        // Team 1
-        html += `<div class="bk-team ${win1 ? 'winner' : ''} ${editableClass}" ${onclickEq1}>`;
-        html += `  <span class="bk-seed">${match.posicion * 2 + 1}</span>`;
-        html += `  <span class="bk-name">${match.equipo1 || '<em>Por definir</em>'}</span>`;
-        if (win1)  html += `<span class="bk-win-icon"><i class="fas fa-crown"></i></span>`;
-        if (canEdit && match.equipo1) html += `<span class="bk-edit-hint"><i class="fas fa-pencil-alt"></i></span>`;
-        html += `</div>`;
+    // Clases del contenedor principal del partido
+    let matchClass = 'bk-match';
+    if (hasWinner) matchClass += ' bk-match-done';
+    if (canAdvance) matchClass += ' bk-match-ready';
 
-        // Divider
-        html += `<div class="bk-divider"></div>`;
+    let html = `<div class="${matchClass}" data-match-id="${match.id}">`;
 
-        // Team 2
-        html += `<div class="bk-team ${win2 ? 'winner' : ''} ${editableClass}" ${onclickEq2}>`;
-        html += `  <span class="bk-seed">${match.posicion * 2 + 2}</span>`;
-        html += `  <span class="bk-name">${match.equipo2 || '<em>Por definir</em>'}</span>`;
-        if (win2)  html += `<span class="bk-win-icon"><i class="fas fa-crown"></i></span>`;
-        if (canEdit && match.equipo2) html += `<span class="bk-edit-hint"><i class="fas fa-pencil-alt"></i></span>`;
-        html += `</div>`;
-
-        // Winner selection — visible when both teams set and no winner yet
-        if (bothSet && !hasWinner) {
-            html += `<div class="bk-winner-section">`;
-            html += `<span class="bk-winner-label"><i class="fas fa-flag-checkered"></i> ¿Quién avanza?</span>`;
-            html += `<div class="bk-winner-btns">`;
-            html += `<button class="bk-btn-advance" onclick="seleccionarGanador(${match.id}, '${escapeStr(match.equipo1)}')">`;            html += `<i class="fas fa-arrow-up"></i> ${match.equipo1}</button>`;
-            html += `<button class="bk-btn-advance" onclick="seleccionarGanador(${match.id}, '${escapeStr(match.equipo2)}')">`;            html += `<i class="fas fa-arrow-down"></i> ${match.equipo2}</button>`;
-            html += `</div></div>`;
-        }
-
-        // Winner confirmed state
-        if (hasWinner) {
-            html += `<div class="bk-confirmed"><i class="fas fa-check-circle"></i> Ganador: <strong>${match.ganador}</strong></div>`;
-        }
-
-        html += `</div>`;
-
-        if (isFinal) {
-            html += `<div class="bk-campeon"><i class="fas fa-trophy"></i> ¡Campeón: ${match.ganador}!</div>`;
-        }
-        return html;
+    // Barra de estado sutil si el partido está listo para jugarse
+    if (canAdvance) {
+        html += `<div class="bk-match-status"><i class="fas fa-hand-pointer"></i> Elige al ganador</div>`;
     }
+
+    // --- EQUIPO 1 ---
+    html += `<div class="bk-team ${win1 ? 'winner' : ''} ${editableClass}" ${onclickEq1}>`;
+    html += `  <span class="bk-seed">${match.posicion * 2 + 1}</span>`;
+    html += `  <span class="bk-name">${match.equipo1 || '<em>Por definir</em>'}</span>`;
+    
+    // Iconos de la derecha (Corona si gana, Lápiz si edita, Check si avanza)
+    if (win1) {
+        html += `<span class="bk-win-icon"><i class="fas fa-crown"></i></span>`;
+    } else if (canAdvance) {
+        html += `<button class="bk-btn-pick-winner" onclick="seleccionarGanador(${match.id}, '${escapeStr(match.equipo1)}'); event.stopPropagation();" title="Avanzar a ${escapeStr(match.equipo1)}"><i class="fas fa-check"></i></button>`;
+    } else if (canEdit && match.equipo1) {
+        html += `<span class="bk-edit-hint"><i class="fas fa-pencil-alt"></i></span>`;
+    }
+    html += `</div>`;
+
+    // Divisor
+    html += `<div class="bk-divider"></div>`;
+
+    // --- EQUIPO 2 ---
+    html += `<div class="bk-team ${win2 ? 'winner' : ''} ${editableClass}" ${onclickEq2}>`;
+    html += `  <span class="bk-seed">${match.posicion * 2 + 2}</span>`;
+    html += `  <span class="bk-name">${match.equipo2 || '<em>Por definir</em>'}</span>`;
+    
+    // Iconos de la derecha
+    if (win2) {
+        html += `<span class="bk-win-icon"><i class="fas fa-crown"></i></span>`;
+    } else if (canAdvance) {
+        html += `<button class="bk-btn-pick-winner" onclick="seleccionarGanador(${match.id}, '${escapeStr(match.equipo2)}'); event.stopPropagation();" title="Avanzar a ${escapeStr(match.equipo2)}"><i class="fas fa-check"></i></button>`;
+    } else if (canEdit && match.equipo2) {
+        html += `<span class="bk-edit-hint"><i class="fas fa-pencil-alt"></i></span>`;
+    }
+    html += `</div>`;
+
+    html += `</div>`; // Cierra bk-match
+
+    // Cartel de Campeón (se mantiene igual)
+    if (isFinal) {
+        html += `<div class="bk-campeon"><i class="fas fa-trophy"></i> ¡Campeón: ${match.ganador}!</div>`;
+    }
+    return html;
+}
 
     function renderBracket(data) {
         const container = document.getElementById('bracket-container');
