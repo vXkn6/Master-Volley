@@ -8,8 +8,32 @@
     <!-- Hero / Título -->
     <div class="eventos-hero">
         <h1><i class="fas fa-calendar-alt"></i> Eventos</h1>
-        <p>Consulta todos los torneos y competiciones programadas del club.</p>
+        <p>Consulta todos los torneos, competiciones y actividades del club.</p>
+        <div class="eventos-hero-actions">
+            <button class="btn-crear-evento" onclick="abrirModal('modal-crear-evento')">
+                <i class="fas fa-plus-circle"></i> Crear Evento
+            </button>
+        </div>
     </div>
+
+    <!-- Messages via SweetAlert -->
+    {% if messages %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            {% for message in messages %}
+            Swal.fire({
+                icon: '{{ message.tags }}',
+                title: '{% if message.tags == "success" %}¡Éxito!{% else %}Error{% endif %}',
+                text: '{{ message }}',
+                confirmButtonColor: '#f5a623',
+                background: '#fff',
+                timer: 3000,
+                timerProgressBar: true,
+            });
+            {% endfor %}
+        });
+    </script>
+    {% endif %}
 
     <!-- Estadísticas rápidas -->
     <div class="eventos-stats">
@@ -21,23 +45,17 @@
             </div>
         </div>
         <div class="stat-card">
-            <i class="fas fa-check-circle"></i>
+            <i class="fas fa-trophy"></i>
             <div>
-                <span class="stat-number">
-                    {% with finalizados=0 %}
-                        {% for e in eventos %}{% if e.estado == 'Finalizado' %}{{ forloop.counter }}{% endif %}{% endfor %}
-                    {% endwith %}
-                </span>
-                <span class="stat-label">Finalizados</span>
+                <span class="stat-number" id="stat-torneos">0</span>
+                <span class="stat-label">Torneos</span>
             </div>
         </div>
         <div class="stat-card">
-            <i class="fas fa-spinner"></i>
+            <i class="fas fa-star"></i>
             <div>
-                <span class="stat-number">
-                    {% for e in eventos %}{% if e.estado == 'En curso' %}{{ forloop.counter }}{% endif %}{% endfor %}
-                </span>
-                <span class="stat-label">En Curso</span>
+                <span class="stat-number" id="stat-solo-eventos">0</span>
+                <span class="stat-label">Solo Eventos</span>
             </div>
         </div>
     </div>
@@ -48,10 +66,20 @@
         {% for evento in eventos %}
         <div class="evento-card">
             <div class="evento-card-header">
-                <span class="evento-estado estado-{{ evento.estado|lower|cut:' ' }}">{{ evento.estado }}</span>
+                <span class="evento-tipo tipo-{{ evento.tipo }}">
+                    {% if evento.es_torneo %}
+                        <i class="fas fa-trophy"></i> Torneo
+                    {% else %}
+                        <i class="fas fa-star"></i> Evento
+                    {% endif %}
+                </span>
+                <span class="evento-estado estado-{{ evento.estado.nombre|lower|cut:' ' }}">{{ evento.estado }}</span>
             </div>
             <div class="evento-card-body">
                 <h2 class="evento-nombre">{{ evento.nombre }}</h2>
+                {% if evento.descripcion %}
+                <p class="evento-descripcion">{{ evento.descripcion|truncatewords:20 }}</p>
+                {% endif %}
                 <ul class="evento-detalles">
                     <li>
                         <i class="fas fa-calendar-day"></i>
@@ -61,14 +89,24 @@
                         <i class="fas fa-map-marker-alt"></i>
                         <span>{{ evento.lugar }}</span>
                     </li>
+                    {% if evento.es_torneo %}
                     <li>
                         <i class="fas fa-users"></i>
                         <span>{{ evento.equipos_participantes }} equipos</span>
                     </li>
+                    {% endif %}
                 </ul>
             </div>
             <div class="evento-card-footer">
-                <a href="#" class="btn-ver-evento"><i class="fas fa-eye"></i> Ver Detalles</a>
+                {% if evento.es_torneo %}
+                <button class="btn-ver-evento" onclick="abrirBracket({{ evento.id }})">
+                    <i class="fas fa-sitemap"></i> Ver Bracket
+                </button>
+                {% else %}
+                <button class="btn-ver-evento btn-ver-solo-evento" onclick="verDetalleEvento('{{ evento.nombre }}', '{{ evento.fecha|date:"d/m/Y" }}', '{{ evento.lugar }}', '{{ evento.estado }}', '{{ evento.descripcion|escapejs }}')">
+                    <i class="fas fa-eye"></i> Ver Detalles
+                </button>
+                {% endif %}
             </div>
         </div>
         {% endfor %}
@@ -77,8 +115,588 @@
     <div class="eventos-empty">
         <i class="fas fa-volleyball-ball"></i>
         <h2>No hay eventos registrados</h2>
-        <p>Aún no se han creado eventos. ¡Vuelve pronto!</p>
+        <p>¡Crea tu primer evento con el botón de arriba!</p>
     </div>
     {% endif %}
 </section>
+
+<!-- ============================================== -->
+<!-- Modal: Crear Evento -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="modal-crear-evento">
+    <div class="modal-content modal-form">
+        <button class="modal-close" onclick="cerrarModal('modal-crear-evento')">&times;</button>
+        <div class="modal-header">
+            <h3><i class="fas fa-plus-circle"></i> Crear Nuevo Evento</h3>
+        </div>
+        <div class="modal-body">
+            <form method="POST" action="{% url 'crear_evento' %}" class="form-admin">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="id_tipo"><i class="fas fa-tag"></i> Tipo de Evento</label>
+                    {{ evento_form.tipo }}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_nombre"><i class="fas fa-edit"></i> Nombre</label>
+                    {{ evento_form.nombre }}
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="id_fecha"><i class="fas fa-calendar-day"></i> Fecha</label>
+                        {{ evento_form.fecha }}
+                    </div>
+                    <div class="form-group">
+                        <label for="id_lugar"><i class="fas fa-map-marker-alt"></i> Lugar</label>
+                        {{ evento_form.lugar }}
+                    </div>
+                </div>
+
+                <div class="form-group" id="grupo-equipos" style="display:none;">
+                    <label for="id_equipos_participantes"><i class="fas fa-users"></i> Cantidad de Equipos</label>
+                    {{ evento_form.equipos_participantes }}
+                    <small class="form-hint">Se generará automáticamente un bracket para esta cantidad de equipos.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="id_estado"><i class="fas fa-info-circle"></i> Estado</label>
+                    {{ evento_form.estado }}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_descripcion"><i class="fas fa-align-left"></i> Descripción (opcional)</label>
+                    {{ evento_form.descripcion }}
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-cancelar" onclick="cerrarModal('modal-crear-evento')">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn-guardar">
+                        <i class="fas fa-save"></i> Crear Evento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- Modal: Detalle Solo Evento -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="modal-detalle-evento">
+    <div class="modal-content">
+        <button class="modal-close" onclick="cerrarModal('modal-detalle-evento')">&times;</button>
+        <div class="modal-header">
+            <h3><i class="fas fa-star"></i> <span id="detalle-nombre"></span></h3>
+        </div>
+        <div class="modal-body">
+            <div class="modal-info-grid">
+                <div class="modal-info-item">
+                    <span class="info-label">Fecha</span>
+                    <span class="info-value" id="detalle-fecha"></span>
+                </div>
+                <div class="modal-info-item">
+                    <span class="info-label">Lugar</span>
+                    <span class="info-value" id="detalle-lugar"></span>
+                </div>
+                <div class="modal-info-item">
+                    <span class="info-label">Estado</span>
+                    <span class="info-value" id="detalle-estado"></span>
+                </div>
+            </div>
+            <div id="detalle-descripcion-wrap" style="display:none;">
+                <h4 style="margin-bottom:0.5rem; color:#1a1a2e;"><i class="fas fa-align-left" style="color:#f5a623;"></i> Descripción</h4>
+                <p id="detalle-descripcion" style="color:#555; font-size:0.92rem;"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- Modal: Bracket de Torneo -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="modal-bracket">
+    <div class="modal-content modal-bracket-content">
+        <button class="modal-close" onclick="cerrarModal('modal-bracket')">&times;</button>
+        <div class="bracket-header-bar">
+            <div class="bracket-header-title">
+                <i class="fas fa-trophy"></i>
+                <span id="bracket-titulo">Bracket del Torneo</span>
+            </div>
+            <span class="bracket-header-sub">🏐 Torneo de Voleibol</span>
+        </div>
+        <div class="modal-body">
+            <div class="bracket-container" id="bracket-container">
+                <div class="bracket-loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Cargando bracket...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- Overlay: Selector de Equipo (dentro de bracket) -->
+<!-- ============================================== -->
+<div class="team-picker-overlay" id="team-picker-overlay">
+    <div class="team-picker-box">
+        <div class="team-picker-header">
+            <h4><i class="fas fa-users"></i> Seleccionar Equipo</h4>
+            <button class="modal-close" onclick="cerrarTeamPicker()" style="position:static; font-size:1.4rem;">&times;</button>
+        </div>
+        <input type="text" id="team-picker-search" class="bracket-input" placeholder="Buscar equipo..." style="margin-bottom:0.8rem;">
+        <select id="team-picker-select" size="6" style="width:100%; border:2px solid #e0e0e0; border-radius:8px; padding:6px; font-size:0.9rem; outline:none; cursor:pointer;"></select>
+        <div class="team-picker-actions">
+            <button class="btn-new-team" onclick="abrirCrearEquipo()">
+                <i class="fas fa-plus"></i> Nuevo Equipo
+            </button>
+            <button class="btn-cancelar" onclick="cerrarTeamPicker()" style="flex:1;">
+                <i class="fas fa-times"></i> Cancelar
+            </button>
+            <button class="btn-guardar" onclick="confirmarEquipo()" style="flex:1;">
+                <i class="fas fa-check"></i> Confirmar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- Overlay: Crear Equipo Nuevo -->
+<!-- ============================================== -->
+<div class="team-picker-overlay" id="crear-equipo-overlay">
+    <div class="team-picker-box">
+        <div class="team-picker-header">
+            <h4><i class="fas fa-plus-circle"></i> Crear Nuevo Equipo</h4>
+            <button class="modal-close" onclick="cerrarCrearEquipo()" style="position:static; font-size:1.4rem;">&times;</button>
+        </div>
+        <div class="form-group" style="margin-bottom:0.8rem;">
+            <label style="font-size:0.8rem; font-weight:600; color:#555; text-transform:uppercase;"><i class="fas fa-edit" style="color:#f5a623;"></i> Nombre *</label>
+            <input type="text" id="new-team-nombre" class="bracket-input" placeholder="Nombre del equipo" style="margin-top:4px;">
+        </div>
+        <div class="form-group" style="margin-bottom:0.8rem;">
+            <label style="font-size:0.8rem; font-weight:600; color:#555; text-transform:uppercase;"><i class="fas fa-map-marker-alt" style="color:#f5a623;"></i> Ciudad</label>
+            <input type="text" id="new-team-ciudad" class="bracket-input" placeholder="Ciudad" style="margin-top:4px;">
+        </div>
+        <div class="form-group" style="margin-bottom:1rem;">
+            <label style="font-size:0.8rem; font-weight:600; color:#555; text-transform:uppercase;"><i class="fas fa-building" style="color:#f5a623;"></i> Gimnasio</label>
+            <input type="text" id="new-team-gimnasio" class="bracket-input" placeholder="Gimnasio" style="margin-top:4px;">
+        </div>
+        <div class="team-picker-actions">
+            <button class="btn-cancelar" onclick="cerrarCrearEquipo()" style="flex:1;">
+                <i class="fas fa-arrow-left"></i> Volver
+            </button>
+            <button class="btn-guardar" onclick="guardarNuevoEquipo()" style="flex:1;">
+                <i class="fas fa-save"></i> Guardar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ===== Modal helpers =====
+    function abrirModal(id) {
+        document.getElementById(id).classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function cerrarModal(id) {
+        document.getElementById(id).classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // Cerrar con Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+            document.body.style.overflow = '';
+        }
+    });
+    // Cerrar al click fuera
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+    });
+
+    // ===== Toggle equipos en form =====
+    function toggleEquipos() {
+        const tipoEl = document.getElementById('id_tipo');
+        if (!tipoEl) return;
+        const tipo = tipoEl.value;
+        const grupo = document.getElementById('grupo-equipos');
+        if (tipo === 'torneo') {
+            grupo.style.display = 'block';
+        } else {
+            grupo.style.display = 'none';
+        }
+    }
+    // Ejecutar al cargar
+    document.addEventListener('DOMContentLoaded', toggleEquipos);
+
+    // ===== Detalle solo evento =====
+    function verDetalleEvento(nombre, fecha, lugar, estado, descripcion) {
+        document.getElementById('detalle-nombre').textContent = nombre;
+        document.getElementById('detalle-fecha').textContent = fecha;
+        document.getElementById('detalle-lugar').textContent = lugar;
+        document.getElementById('detalle-estado').textContent = estado;
+        const descWrap = document.getElementById('detalle-descripcion-wrap');
+        if (descripcion) {
+            document.getElementById('detalle-descripcion').textContent = descripcion;
+            descWrap.style.display = 'block';
+        } else {
+            descWrap.style.display = 'none';
+        }
+        abrirModal('modal-detalle-evento');
+    }
+
+    // ===== Stats counter =====
+    document.addEventListener('DOMContentLoaded', function() {
+        let torneos = 0, soloEventos = 0;
+        document.querySelectorAll('.evento-tipo').forEach(el => {
+            if (el.classList.contains('tipo-torneo')) torneos++;
+            else soloEventos++;
+        });
+        const elTorneos = document.getElementById('stat-torneos');
+        const elSoloEventos = document.getElementById('stat-solo-eventos');
+        if (elTorneos) elTorneos.textContent = torneos;
+        if (elSoloEventos) elSoloEventos.textContent = soloEventos;
+    });
+
+    // ===== Bracket =====
+    let currentEventoId = null;
+
+    function abrirBracket(eventoId) {
+        currentEventoId = eventoId;
+        const container = document.getElementById('bracket-container');
+        container.innerHTML = '<div class="bracket-loading"><i class="fas fa-spinner fa-spin"></i><p>Cargando bracket...</p></div>';
+        abrirModal('modal-bracket');
+
+        fetch(`/api/bracket/${eventoId}/`)
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('bracket-titulo').textContent = 'Bracket: ' + data.evento_nombre;
+                renderBracket(data);
+            })
+            .catch(() => {
+                container.innerHTML = '<div class="bracket-loading"><i class="fas fa-exclamation-triangle"></i><p>Error al cargar el bracket.</p></div>';
+            });
+    }
+
+    function getRondaNombre(ronda, totalRondas) {
+        if (ronda === totalRondas) return 'Final';
+        if (ronda === totalRondas - 1 && totalRondas > 2) return 'Semifinal';
+        if (ronda === totalRondas - 2 && totalRondas > 3) return 'Cuartos';
+        return 'Ronda ' + ronda;
+    }
+
+    function renderMatchHTML(match, rondaNum, totalRondas) {
+    const isRound1 = rondaNum === 1;
+    const hasWinner = !!match.ganador;
+    const bothSet   = !!(match.equipo1 && match.equipo2);
+    const win1 = hasWinner && match.ganador === match.equipo1;
+    const win2 = hasWinner && match.ganador === match.equipo2;
+    const isFinal = (rondaNum === totalRondas) && hasWinner;
+
+    // Lógicas de estado
+    const canEdit = isRound1 && !hasWinner;
+    const canAdvance = bothSet && !hasWinner; // Listo para elegir ganador
+
+    const onclickEq1 = canEdit ? `onclick="editarEquipo(${match.id}, 'equipo1', this)"` : '';
+    const onclickEq2 = canEdit ? `onclick="editarEquipo(${match.id}, 'equipo2', this)"` : '';
+    const editableClass = canEdit ? 'bk-team-editable' : '';
+
+    // Clases del contenedor principal del partido
+    let matchClass = 'bk-match';
+    if (hasWinner) matchClass += ' bk-match-done';
+    if (canAdvance) matchClass += ' bk-match-ready';
+
+    let html = `<div class="${matchClass}" data-match-id="${match.id}">`;
+
+    // Barra de estado sutil si el partido está listo para jugarse
+    if (canAdvance) {
+        html += `<div class="bk-match-status"><i class="fas fa-hand-pointer"></i> Elige al ganador</div>`;
+    }
+
+    // --- EQUIPO 1 ---
+    html += `<div class="bk-team ${win1 ? 'winner' : ''} ${editableClass}" ${onclickEq1}>`;
+    html += `  <span class="bk-seed">${match.posicion * 2 + 1}</span>`;
+    html += `  <span class="bk-name">${match.equipo1 || '<em>Por definir</em>'}</span>`;
+    
+    // Iconos de la derecha (Corona si gana, Lápiz si edita, Check si avanza)
+    if (win1) {
+        html += `<span class="bk-win-icon"><i class="fas fa-crown"></i></span>`;
+    } else if (canAdvance) {
+        html += `<button class="bk-btn-pick-winner" onclick="seleccionarGanador(${match.id}, '${escapeStr(match.equipo1)}'); event.stopPropagation();" title="Avanzar a ${escapeStr(match.equipo1)}"><i class="fas fa-check"></i></button>`;
+    } else if (canEdit && match.equipo1) {
+        html += `<span class="bk-edit-hint"><i class="fas fa-pencil-alt"></i></span>`;
+    }
+    html += `</div>`;
+
+    // Divisor
+    html += `<div class="bk-divider"></div>`;
+
+    // --- EQUIPO 2 ---
+    html += `<div class="bk-team ${win2 ? 'winner' : ''} ${editableClass}" ${onclickEq2}>`;
+    html += `  <span class="bk-seed">${match.posicion * 2 + 2}</span>`;
+    html += `  <span class="bk-name">${match.equipo2 || '<em>Por definir</em>'}</span>`;
+    
+    // Iconos de la derecha
+    if (win2) {
+        html += `<span class="bk-win-icon"><i class="fas fa-crown"></i></span>`;
+    } else if (canAdvance) {
+        html += `<button class="bk-btn-pick-winner" onclick="seleccionarGanador(${match.id}, '${escapeStr(match.equipo2)}'); event.stopPropagation();" title="Avanzar a ${escapeStr(match.equipo2)}"><i class="fas fa-check"></i></button>`;
+    } else if (canEdit && match.equipo2) {
+        html += `<span class="bk-edit-hint"><i class="fas fa-pencil-alt"></i></span>`;
+    }
+    html += `</div>`;
+
+    html += `</div>`; // Cierra bk-match
+
+    // Cartel de Campeón (se mantiene igual)
+    if (isFinal) {
+        html += `<div class="bk-campeon"><i class="fas fa-trophy"></i> ¡Campeón: ${match.ganador}!</div>`;
+    }
+    return html;
+}
+
+    function renderBracket(data) {
+        const container = document.getElementById('bracket-container');
+        const rondas = data.rondas;
+        const rondasKeys = Object.keys(rondas).map(Number).sort((a, b) => a - b);
+        const totalRondas = rondasKeys.length;
+
+        if (totalRondas === 0) {
+            container.innerHTML = '<div class="bracket-loading"><i class="fas fa-info-circle"></i><p>No hay bracket generado para este torneo.</p></div>';
+            return;
+        }
+
+        // For 1 round only, just show center
+        if (totalRondas === 1) {
+            let html = '<div class="bk-bracket">';
+            html += '<div class="bk-center">';
+            html += `<div class="bk-round-label">Final</div>`;
+            rondas[rondasKeys[0]].forEach(m => { html += renderMatchHTML(m, 1, 1); });
+            html += '</div></div>';
+            container.innerHTML = html;
+            return;
+        }
+
+        // Split rounds: left side gets first half, right side gets second half (mirrored), center is final
+        const finalKey = rondasKeys[totalRondas - 1];
+        const nonFinalKeys = rondasKeys.slice(0, -1);
+
+        // For symmetric bracket: we need equal rounds on each side
+        // Left side: round 1 -> round n-1, right side: same but mirrored
+        // However our data is linear. For a true symmetric bracket, we split
+        // the first round's matches in half: top half goes left, bottom half goes right.
+        // Each subsequent round's matches are also split.
+
+        // Build left and right halves
+        let leftRounds = {};
+        let rightRounds = {};
+
+        nonFinalKeys.forEach(rKey => {
+            const matches = rondas[rKey];
+            const half = Math.ceil(matches.length / 2);
+            leftRounds[rKey] = matches.slice(0, half);
+            rightRounds[rKey] = matches.slice(half);
+        });
+
+        let html = '<div class="bk-bracket">';
+
+        // === LEFT HALF ===
+        html += '<div class="bk-half bk-left">';
+        nonFinalKeys.forEach(rKey => {
+            const rondaNombre = getRondaNombre(Number(rKey), totalRondas);
+            const matchCount = leftRounds[rKey].length;
+            html += `<div class="bk-round" data-matches="${matchCount}">`;
+            html += `<div class="bk-round-label">${rondaNombre}</div>`;
+            html += `<div class="bk-matches-wrapper">`;
+            leftRounds[rKey].forEach(m => { html += renderMatchHTML(m, Number(rKey), totalRondas); });
+            html += `</div>`;
+            html += '</div>';
+        });
+        html += '</div>';
+
+        // === CENTER (Final) ===
+        html += '<div class="bk-center">';
+        html += `<div class="bk-round-label">Final</div>`;
+        rondas[finalKey].forEach(m => { html += renderMatchHTML(m, Number(finalKey), totalRondas); });
+        html += '</div>';
+
+        // === RIGHT HALF (reversed order) ===
+        html += '<div class="bk-half bk-right">';
+        // Reversed: show inner rounds first (closer to final), then outer
+        const reversedKeys = [...nonFinalKeys].reverse();
+        reversedKeys.forEach(rKey => {
+            const rondaNombre = getRondaNombre(Number(rKey), totalRondas);
+            const matchCount = rightRounds[rKey].length;
+            html += `<div class="bk-round" data-matches="${matchCount}">`;
+            html += `<div class="bk-round-label">${rondaNombre}</div>`;
+            html += `<div class="bk-matches-wrapper">`;
+            rightRounds[rKey].forEach(m => { html += renderMatchHTML(m, Number(rKey), totalRondas); });
+            html += `</div>`;
+            html += '</div>';
+        });
+        html += '</div>';
+
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    function escapeStr(s) {
+        return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    // ===== Team picker using DB teams =====
+    let pickerMatchId = null;
+    let pickerCampo = null;
+
+    function editarEquipo(matchId, campo, el) {
+        pickerMatchId = matchId;
+        pickerCampo = campo;
+        const currentName = el.querySelector('.bk-name').textContent.trim();
+        abrirTeamPicker(currentName);
+    }
+
+    function abrirTeamPicker(current) {
+        const overlay = document.getElementById('team-picker-overlay');
+        const select = document.getElementById('team-picker-select');
+        const search = document.getElementById('team-picker-search');
+        select.innerHTML = '<option value="">-- Seleccionar equipo --</option>';
+        search.value = '';
+
+        fetch('/api/equipos/')
+            .then(r => r.json())
+            .then(data => {
+                allTeams = data.equipos;
+                renderTeamOptions(data.equipos, current);
+                overlay.classList.add('active');
+            });
+    }
+
+    let allTeams = [];
+
+    function renderTeamOptions(teams, current) {
+        const select = document.getElementById('team-picker-select');
+        const prev = select.value;
+        select.innerHTML = '<option value="">-- Seleccionar equipo --</option>';
+        teams.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.nombre;
+            opt.textContent = t.nombre + (t.ciudad ? ' - ' + t.ciudad : '');
+            if (t.nombre === current || t.nombre === prev) opt.selected = true;
+            select.appendChild(opt);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const search = document.getElementById('team-picker-search');
+        if (search) {
+            search.addEventListener('input', function() {
+                const q = this.value.toLowerCase();
+                const filtered = allTeams.filter(t => t.nombre.toLowerCase().includes(q) || (t.ciudad || '').toLowerCase().includes(q));
+                renderTeamOptions(filtered, '');
+            });
+        }
+    });
+
+    function confirmarEquipo() {
+        const select = document.getElementById('team-picker-select');
+        const nombre = select.value;
+        if (!nombre) return;
+        guardarEquipoEnMatch(pickerMatchId, pickerCampo, nombre);
+        cerrarTeamPicker();
+    }
+
+    function cerrarTeamPicker() {
+        document.getElementById('team-picker-overlay').classList.remove('active');
+    }
+
+    function guardarEquipoEnMatch(matchId, campo, nombre) {
+        fetch(`/api/bracket/match/${matchId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({ [campo]: nombre }),
+        })
+        .then(r => r.json())
+        .then(() => abrirBracket(currentEventoId));
+    }
+
+    // ===== Crear equipo nuevo =====
+    function abrirCrearEquipo() {
+        document.getElementById('new-team-nombre').value = '';
+        document.getElementById('new-team-ciudad').value = '';
+        document.getElementById('new-team-gimnasio').value = '';
+        document.getElementById('crear-equipo-overlay').classList.add('active');
+    }
+
+    function cerrarCrearEquipo() {
+        document.getElementById('crear-equipo-overlay').classList.remove('active');
+    }
+
+    function guardarNuevoEquipo() {
+        const nombre = document.getElementById('new-team-nombre').value.trim();
+        const ciudad = document.getElementById('new-team-ciudad').value.trim();
+        const gimnasio = document.getElementById('new-team-gimnasio').value.trim();
+        if (!nombre) {
+            document.getElementById('new-team-nombre').focus();
+            return;
+        }
+        fetch('/api/equipos/crear/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({ nombre, ciudad, gimnasio }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) { alert(data.error); return; }
+            cerrarCrearEquipo();
+            // Re-abrir el picker con el nuevo equipo seleccionado
+            abrirTeamPicker(data.nombre);
+        });
+    }
+
+    function seleccionarGanador(matchId, ganador) {
+        fetch(`/api/bracket/match/${matchId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({ ganador: ganador }),
+        })
+        .then(r => r.json())
+        .then(() => {
+            abrirBracket(currentEventoId);
+        });
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
 {% endblock %}
